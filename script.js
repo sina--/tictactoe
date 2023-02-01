@@ -33,18 +33,47 @@ const winConditions = [
     [3,5,7],
 ];
 
+function createTile(fieldName) {
+    let field = document.createElement('div');
+    return {
+	fieldID: fieldName,
+	create: function () {
+	    field.classList.add('field');
+	    field.id = fieldName;
+	    field.addEventListener('click', play);
+	    if (field.id.slice(-1) % 2 === 0) {
+		field.style.background = 'grey';
+	    } else {
+		field.style.background = 'white';
+	    };
+	},
+	append: function () {
+	    boardUI.appendChild(field);
+	}
+    };
+};
+
+//const tile1 = createTile('one');
+//
+//tile1.create();
+//tile1.append();
+
 function init() {
     for (const key in gameBoard) {
-	let field = document.createElement('div');
-	field.classList.add('field');
-	field.id = key;
-	field.addEventListener('click', play);
-	if (field.id.slice(-1) % 2 === 0) {
-	    field.style.background = 'grey';
-	} else {
-	    field.style.background = 'white';
-	};
-	boardUI.appendChild(field);
+//	let field = document.createElement('div');
+//	field.classList.add('field');
+//	field.id = key;
+//	field.addEventListener('click', play);
+//	if (field.id.slice(-1) % 2 === 0) {
+//	    field.style.background = 'grey';
+//	} else {
+//	    field.style.background = 'white';
+//	};
+//	boardUI.appendChild(field);
+	
+	let tile = createTile(key);
+	tile.create();
+	tile.append();
     };
 };
 
