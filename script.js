@@ -1,119 +1,140 @@
-let boardUI = document.getElementById('board');
-let statusIndicator = document.getElementById('status');
-let turnIndicator = document.getElementById('turnIndicator');
-let gameOn = true;
+var origBoard;
+const huPlayer = 'O';
+const aiPlayer = 'X';
+const winCombos = [
+	[0, 1, 2],
+	[3, 4, 5],
+	[6, 7, 8],
+	[0, 3, 6],
+	[1, 4, 7],
+	[2, 5, 8],
+	[0, 4, 8],
+	[6, 4, 2]
+]
 
-let gameBoard = {
-    field1: {owner: 'blank'},
-    field2: {owner: 'blank'},
-    field3: {owner: 'blank'},
-    field4: {owner: 'blank'},
-    field5: {owner: 'blank'},
-    field6: {owner: 'blank'},
-    field7: {owner: 'blank'},
-    field8: {owner: 'blank'},
-    field9: {owner: 'blank'},
-};
+const cells = document.querySelectorAll('.cell');
+startGame();
 
-let score = {
-    player: [],
-    ai: [],
-};
-
-const winConditions = [
-    [1,2,3],
-    [4,5,6],
-    [7,8,9],
-    [1,4,7],
-    [2,5,8],
-    [3,6,9],
-    [1,5,9],
-    [3,5,7],
-];
-
-function createTile(fieldName) {
-    let field = document.createElement('div');
-    return {
-	fieldID: fieldName,
-	create: function () {
-	    field.classList.add('field');
-	    field.id = fieldName;
-	    field.addEventListener('click', play);
-	    if (field.id.slice(-1) % 2 === 0) {
-		field.style.background = 'grey';
-	    } else {
-		field.style.background = 'white';
-	    };
-	},
-	append: function () {
-	    boardUI.appendChild(field);
+function startGame() {
+	document.querySelector(".endgame").style.display = "none";
+	origBoard = Array.from(Array(9).keys());
+	for (var i = 0; i < cells.length; i++) {
+		cells[i].innerText = '';
+		cells[i].style.removeProperty('background-color');
+		cells[i].addEventListener('click', turnClick, false);
 	}
-    };
-};
+}
 
-function init() {
-    for (const key in gameBoard) {
-	let tile = createTile(key);
-	tile.create();
-	tile.append();
-    };
-};
+function turnClick(square) {
+	if (typeof origBoard[square.target.id] == 'number') {
+		turn(square.target.id, huPlayer)
+		if (!checkWin(origBoard, huPlayer) && !checkTie()) turn(bestSpot(), aiPlayer);
+	}
+}
 
-function play() {
-    if (gameOn) {
-	if (gameBoard[this.id].owner === 'blank') {
-	    let X = document.createElement('img');
-	    X.src = 'images/x.svg';
-	    this.appendChild(X);
-	    gameBoard[this.id].owner = 'player';
-	    score.player.push(Number(this.id.slice(-1)));
-	    chickenDinner();
-	    aiPlay();
-	};
-    };
-};
+function turn(squareId, player) {
+	origBoard[squareId] = player;
+	document.getElementById(squareId).innerText = player;
+	let gameWon = checkWin(origBoard, player)
+	if (gameWon) gameOver(gameWon)
+}
 
-function aiPlay() { 
-    if (gameOn) {
-	let possibleMoves = playableFields();
-	let aiMove = possibleMoves[Math.floor(Math.random()*possibleMoves.length)];
-	let O = document.createElement('img');
-	O.src = 'images/o.svg';
-	gameBoard[aiMove].owner = 'ai';
-	score.ai.push(Number(aiMove.slice(-1)));
-	chickenDinner();
-	document.getElementById(aiMove).appendChild(O);
-    };
-};
+function checkWin(board, player) {
+	let plays = board.reduce((a, e, i) =>
+		(e === player) ? a.concat(i) : a, []);
+	let gameWon = null;
+	for (let [index, win] of winCombos.entries()) {
+		if (win.every(elem => plays.indexOf(elem) > -1)) {
+			gameWon = {index: index, player: player};
+			break;
+		}
+	}
+	return gameWon;
+}
 
-function playableFields() {
-    return Object.keys(gameBoard).filter(keyName => gameBoard[keyName].owner == 'blank');
-};
+function gameOver(gameWon) {
+	for (let index of winCombos[gameWon.index]) {
+		document.getElementById(index).style.backgroundColor =
+			gameWon.player == huPlayer ? "blue" : "red";
+	}
+	for (var i = 0; i < cells.length; i++) {
+		cells[i].removeEventListener('click', turnClick, false);
+	}
+	declareWinner(gameWon.player == huPlayer ? "You win!" : "You lose.");
+}
 
-let checker = (array, target) => target.every(v => array.includes(v));
+function declareWinner(who) {
+	document.querySelector(".endgame").style.display = "block";
+	document.querySelector(".endgame .text").innerText = who;
+}
 
-function chickenDinner() {
-    if (playableFields().length === 0) {
-	statusIndicator.textContent = 'Stalemate!';
-	gameOn = false;
-    };
-    for (i = 0; i < winConditions.length; i++) {
-	if (checker(score.player, winConditions[i])) {
-	    statusIndicator.textContent = 'X wins!';
-	    gameOn = false;
-	};
-	if (checker(score.ai, winConditions[i])) {
-	    statusIndicator.textContent = 'O wins!';
-	    gameOn = false;
-	};
-    };
-};
+function emptySquares() {
+	return origBoard.filter(s => typeof s == 'number');
+}
 
-const documentHeight = () => {
-    const doc = document.documentElement;
-    doc.style.setProperty('--doc-height', `${window.innerHeight}px`);
-};
+function bestSpot() {
+	return minimax(origBoard, aiPlayer).index;
+}
 
-window.addEventListener('resize', documentHeight);
-documentHeight();
-init();
+function checkTie() {
+	if (emptySquares().length == 0) {
+		for (var i = 0; i < cells.length; i++) {
+			cells[i].style.backgroundColor = "green";
+			cells[i].removeEventListener('click', turnClick, false);
+		}
+		declareWinner("Tie Game!")
+		return true;
+	}
+	return false;
+}
+
+function minimax(newBoard, player) {
+	var availSpots = emptySquares();
+
+	if (checkWin(newBoard, huPlayer)) {
+		return {score: -10};
+	} else if (checkWin(newBoard, aiPlayer)) {
+		return {score: 10};
+	} else if (availSpots.length === 0) {
+		return {score: 0};
+	}
+	var moves = [];
+	for (var i = 0; i < availSpots.length; i++) {
+		var move = {};
+		move.index = newBoard[availSpots[i]];
+		newBoard[availSpots[i]] = player;
+
+		if (player == aiPlayer) {
+			var result = minimax(newBoard, huPlayer);
+			move.score = result.score;
+		} else {
+			var result = minimax(newBoard, aiPlayer);
+			move.score = result.score;
+		}
+
+		newBoard[availSpots[i]] = move.index;
+
+		moves.push(move);
+	}
+
+	var bestMove;
+	if(player === aiPlayer) {
+		var bestScore = -10000;
+		for(var i = 0; i < moves.length; i++) {
+			if (moves[i].score > bestScore) {
+				bestScore = moves[i].score;
+				bestMove = i;
+			}
+		}
+	} else {
+		var bestScore = 10000;
+		for(var i = 0; i < moves.length; i++) {
+			if (moves[i].score < bestScore) {
+				bestScore = moves[i].score;
+				bestMove = i;
+			}
+		}
+	}
+
+	return moves[bestMove];
+}
