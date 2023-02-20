@@ -1,9 +1,7 @@
 let boardUI = document.getElementById('board');
 let statusIndicator = document.getElementById('status');
 let turnIndicator = document.getElementById('turnIndicator');
-let playerTurn = true;
 let gameOn = true;
-let turnCounter = 0;
 
 let gameBoard = {
     field1: {owner: 'blank'},
@@ -33,18 +31,31 @@ const winConditions = [
     [3,5,7],
 ];
 
+function createTile(fieldName) {
+    let field = document.createElement('div');
+    return {
+	fieldID: fieldName,
+	create: function () {
+	    field.classList.add('field');
+	    field.id = fieldName;
+	    field.addEventListener('click', play);
+	    if (field.id.slice(-1) % 2 === 0) {
+		field.style.background = 'grey';
+	    } else {
+		field.style.background = 'white';
+	    };
+	},
+	append: function () {
+	    boardUI.appendChild(field);
+	}
+    };
+};
+
 function init() {
     for (const key in gameBoard) {
-	let field = document.createElement('div');
-	field.classList.add('field');
-	field.id = key;
-	field.addEventListener('click', play);
-	if (field.id.slice(-1) % 2 === 0) {
-	    field.style.background = 'grey';
-	} else {
-	    field.style.background = 'white';
-	};
-	boardUI.appendChild(field);
+	let tile = createTile(key);
+	tile.create();
+	tile.append();
     };
 };
 
@@ -54,48 +65,46 @@ function play() {
 	    let X = document.createElement('img');
 	    X.src = 'images/x.svg';
 	    this.appendChild(X);
-	    playerTurn = false;
 	    gameBoard[this.id].owner = 'player';
 	    score.player.push(Number(this.id.slice(-1)));
 	    chickenDinner();
 	    aiPlay();
-	};
-	if (turnCounter === 9 && gameOn) {
-	    statusIndicator.textContent = 'Stalemate!';
-	    console.log(winConditions.length);
-	    turnIndicator.remove();
 	};
     };
 };
 
 function aiPlay() { 
     if (gameOn) {
-	let possibleMoves = Object.keys(gameBoard).filter(keyName => gameBoard[keyName].owner == 'blank');
+	let possibleMoves = playableFields();
 	let aiMove = possibleMoves[Math.floor(Math.random()*possibleMoves.length)];
 	let O = document.createElement('img');
 	O.src = 'images/o.svg';
 	gameBoard[aiMove].owner = 'ai';
 	score.ai.push(Number(aiMove.slice(-1)));
+	chickenDinner();
 	document.getElementById(aiMove).appendChild(O);
     };
 };
 
-let checker = (arr, target) => target.every(v => arr.includes(v));
+function playableFields() {
+    return Object.keys(gameBoard).filter(keyName => gameBoard[keyName].owner == 'blank');
+};
+
+let checker = (array, target) => target.every(v => array.includes(v));
 
 function chickenDinner() {
-    turnCounter++;
+    if (playableFields().length === 0) {
+	statusIndicator.textContent = 'Stalemate!';
+	gameOn = false;
+    };
     for (i = 0; i < winConditions.length; i++) {
-	if (playerTurn === false) {
-	    if (checker(score.player, winConditions[i]) === true) {
-		let declaration = document.createElement('div');
-		declaration.textContent = 'X wins!';
-		boardUI.appendChild(declaration);
-		gameOn = false;
-	    };
-	} else {
-	    if (checker(score.ai, winConditions[i]) === true) {
-		gameOn = false;
-	    };
+	if (checker(score.player, winConditions[i])) {
+	    statusIndicator.textContent = 'X wins!';
+	    gameOn = false;
+	};
+	if (checker(score.ai, winConditions[i])) {
+	    statusIndicator.textContent = 'O wins!';
+	    gameOn = false;
 	};
     };
 };
@@ -107,5 +116,4 @@ const documentHeight = () => {
 
 window.addEventListener('resize', documentHeight);
 documentHeight();
-
 init();
