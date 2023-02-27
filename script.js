@@ -1,3 +1,15 @@
+// * Create recursive function
+// -- Termination states
+// ---- If all fields are occupied
+// ---- If there is a winner
+// ------ Create a function to check for winner
+// ---- If there is a stalemate with blank fields remaining
+// ------ Create a function to check for stalemate
+// -- Create a loop that will explore all the options calling the function itself
+// 
+// * Return the best move
+
+
 let boardUI = document.getElementById('board');
 let statusIndicator = document.getElementById('status');
 let turnIndicator = document.getElementById('turnIndicator');
@@ -67,21 +79,21 @@ function play() {
 	    this.appendChild(X);
 	    gameBoard[this.id].owner = 'player';
 	    score.player.push(Number(this.id.slice(-1)));
-	    chickenDinner();
+	    chickenDinner('player');
 	    aiPlay();
 	};
     };
 };
 
 function aiPlay() { 
-    if (gameOn) {
+    if (!chickenDinner('player')) {
 	let possibleMoves = playableFields();
 	let aiMove = possibleMoves[Math.floor(Math.random()*possibleMoves.length)];
 	let O = document.createElement('img');
 	O.src = 'images/o.svg';
 	gameBoard[aiMove].owner = 'ai';
 	score.ai.push(Number(aiMove.slice(-1)));
-	chickenDinner();
+	chickenDinner('ai');
 	document.getElementById(aiMove).appendChild(O);
     };
 };
@@ -92,22 +104,37 @@ function playableFields() {
 
 let checker = (array, target) => target.every(v => array.includes(v));
 
-function chickenDinner() {
+function checkWinner(player) {
+
+}
+
+function chickenDinner(player) {
+    let winner = false;
     if (playableFields().length === 0) {
 	statusIndicator.textContent = 'Stalemate!';
-	gameOn = false;
+	winner = true;
     };
     for (i = 0; i < winConditions.length; i++) {
-	if (checker(score.player, winConditions[i])) {
-	    statusIndicator.textContent = 'X wins!';
-	    gameOn = false;
-	};
-	if (checker(score.ai, winConditions[i])) {
-	    statusIndicator.textContent = 'O wins!';
-	    gameOn = false;
+	if (checker(score[player], winConditions[i])) {
+	    statusIndicator.textContent = player + ' wins!';
+	    winner = true;
 	};
     };
+    return winner;
 };
+
+function checkWin(board, player) {
+	let plays = board.reduce((a, e, i) =>
+		(e === player) ? a.concat(i) : a, []);
+	let gameWon = null;
+	for (let [index, win] of winCombos.entries()) {
+		if (win.every(elem => plays.indexOf(elem) > -1)) {
+			gameWon = {index: index, player: player};
+			break;
+		}
+	}
+	return gameWon;
+}
 
 const documentHeight = () => {
     const doc = document.documentElement;
