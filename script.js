@@ -85,7 +85,16 @@ function play() {
     };
 };
 
+// This is our recursive function
+
 function aiPlay() { 
+    // Add termination checks
+    if (playableFields().length === 0) {
+	statusIndicator.textContent = 'Stalemate!';
+	gameOn = false;
+	return gameOn;
+    };
+
     if (!chickenDinner('player')) {
 	let possibleMoves = playableFields();
 	let aiMove = possibleMoves[Math.floor(Math.random()*possibleMoves.length)];
@@ -110,10 +119,6 @@ function checkWinner(player) {
 
 function chickenDinner(player) {
     let winner = false;
-    if (playableFields().length === 0) {
-	statusIndicator.textContent = 'Stalemate!';
-	winner = true;
-    };
     for (i = 0; i < winConditions.length; i++) {
 	if (checker(score[player], winConditions[i])) {
 	    statusIndicator.textContent = player + ' wins!';
